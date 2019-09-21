@@ -1,0 +1,98 @@
+---
+title: "Relación entre peso corporal y tasa metabólica basal en mamíferos"
+author: "Daniela O'Ryan S."
+date: "20 de septiembre de 2019"
+output: 
+    html_document:
+      fig_caption: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE )
+library(tidyverse)
+library(knitr)
+```
+
+## Introducción
+
+
+
+Luego de la postulación de una relación entre el tamaño corporal de los organismos y sus rasgos de historia de vida por Huxley en los años 30 [1] y la publicación de la teoría metabólica de Brown [2], ha existido debate sobre que exponente explica mejor la relación entre peso corporal y la tasa metabólica basal. Esta relación se basa en la siguiente ecuación:   _TMB = a (M ^ b)_  . Donde _TMB_ representa la Tasa Metabólica Basal medida en consumo de mL de oxígeno por hora, _a_ es una constante, _M_ representa el peso corporal y _b_ la potencia a la que es elevado este último. Al transformar los valores de peso corporal y tasa metabólica basal a logaritmo natural, se espera que los datos sigan una distribución lineal y que el exponente b pase a ser la pendiente de la recta.
+
+El exponente b de 3/4 propuesto por Kleiber [3] ha sido ampliamente aceptado y dice explicar las relaciones entre peso corporal y tasa metabólica para todo tipo de especies (unicelulares, plantas, vertebrados endotermos y ectotermos). Sin embargo, se ha postulado que este exponente es poco representativo de los mamíferos[4] y que un exponente igual a 2/3 provee un mejor ajuste. En este doumento realizamos un análisis exploratorio visual utilizando los datos de peso corporal y la tasa metabólica basal de una base de datos de especies de mamíferos para ver gráficamente si los datos se aproximan a una distribución lineal al ser transformados con logaritmo natural y ver si hay diferencias entre los exponentes iniciales de 2/3 y 3/4. 
+
+
+
+## Métodos
+
+Utilizamos la base de datos PanTheria,  que contiene datos de distintos rasgos de especies de mamíferos (http://esapubs.org/archive/ecol/E090/184/). 
+
+Primero calculamos los promedios de peso corporal por orden para revisar que en efecto hubiera coherencia entre los datos y los valores esperados (ejemplo: que el peso corporal promedio de individuos del orden Chiroptera no fuera superior al del orden Sirenia).
+
+A continuación, utilizamos los datos de tasa metabólica basal  y los datos de peso corporal de individuos adultos pertenecientes a todas las especies de mamíferos . Los datos de tasa metabólica basal se encuentran en unidad de consumo de mL de oxígeno por hora y el peso corporal, en gramos, lo que se asemeja a las unidades utilizadas en ejercicios similares [4], por lo que no fue necesario transformarlas. Realizamos un análisis exploratorio visual comparando la gráfica de logaritmo natural de peso corporal elevado a 2/3 y a 3/4 como variable independiente y el logaritmo natural de la tasa metabólica basal como variable dependiente para ver gráficamente cuál exponente (como valor de pendiente en la recta de los datos transformados) se ajusta mejor a la dispersión de los datos. 
+
+ 
+
+
+## Resultados
+
+Los promedios de peso corporal por orden se detallan en la Tabla 1. 
+
+
+```{r}
+divi <- read.csv(file.choose(),header=TRUE,sep=";",dec=".")
+div_tabla <- divi %>% rename("peso"=X5.1_AdultBodyMass_g) %>%  filter(peso!=-999.00, !is.na(peso)) %>%  rename("Orden"=ordenu)
+tabla1 <- div_tabla %>% group_by(Orden) %>% summarise(Promedio_peso =mean(peso), DE_peso=sd(peso)) 
+kable(tabla1, caption = "Tabla 1. Promedio de peso corporal en gramos por orden de mamíferos ", row.names = FALSE)
+```
+
+La media del peso corporal es `r mean(div_tabla$peso)`. Los 3 valores más altos corresponden a los órdenes Cetacea, Proboscidea y Sirenia, mientras que los 3 valores inferiores corresponden a los órdenes Microbiotheria, Soricomorpha y Paucituberculata. Órdenes como Dermoptera, Lagomorpha y Primates aparecen con valores intermedios. A grandes rasgos se observa coherencia en los datos.
+
+
+
+En cuanto a las relaciones entre peso corporal y tasa metabólica basal, las gráficas se observan en las figuras 1 y 2. En la figura 1 observamos una gráfica de la relación entre peso corporal y tasa metabólica basal para una pendiente b igual a 3/4 (0,75).
+
+
+```{r, fig.cap= "Figura 1. Relacion entre peso corporal (como logaritmo natural del peso) y la tasa metabolica basal(TMB, como logaritmo natural de tasa metabolica basal) utilizando una pendiente b=0.75"}
+div <- read.csv(file.choose(),header=TRUE,sep=";",dec=".")
+div_filter<- div  %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X5.2_BasalMetRateMass_g) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) 
+numerico1 <- as.numeric(div_filter$Peso)
+numerico2 <- as.numeric(div_filter$TMB)
+div_filter2 <- div_filter %>%  mutate(ln_Peso = log(numerico1)) %>% mutate(ln_TMB=log(numerico2))
+ggplot(div_filter2, aes(x = ln_Peso , y = ln_TMB))  + geom_smooth(method = "lm", formula = y ~ I(0.75*x)) + geom_point() + theme_classic()
+
+```
+
+
+
+
+
+
+A continuación, en la figura 2 observamos la misma relación, esta vez para una pendiente b igual a 2/3 (0.66)
+
+
+
+```{r, fig.cap="Figura 2. Relacion entre peso corporal (como logaritmo natural del peso) y la tasa metabolica basal(TMB, como logaritmo natural de tasa metabolica basal) utilizando una pendiente b=0.66"}
+div <- read.csv(file.choose(),header=TRUE,sep=";",dec=".")
+div_filter<- div  %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X5.2_BasalMetRateMass_g) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) 
+numerico1 <- as.numeric(div_filter$Peso)
+numerico2 <- as.numeric(div_filter$TMB)
+div_filter2 <- div_filter %>%  mutate(ln_Peso = log(numerico1)) %>% mutate(ln_TMB=log(numerico2))
+ggplot(div_filter2, aes(x = ln_Peso , y = ln_TMB))  + geom_smooth(method = "lm", formula = y ~ I(0.66*x)) + geom_point() + theme_classic()
+```
+
+## Discusión
+
+
+Los datos de peso corporal parecen a grandes rasgos ser coherentes cuando se comparan los promedios por orden de mamíferos.
+
+La relación de los datos de peso corporal y TMB convertidos a logaritmo natural siguen aparentemente una relación lineal. A simple vista no es posible distinguir si la línea del exponente b = 2/3 o la del exponente b = 3/4 se ajusta mejor a los puntos. Es necesario poner a prueba ambos modelos mediante alguna medida de bondad ajuste para establecer cuál representa mejor la relación entre estas variables
+
+
+## Bibliografía
+
+1. Huxley, J. S. 1932. Problems of relative growth. Methuen, London, UK.
+2. Brown, J. H., Gillooly, J. F., Allen, A. P., Savage, V. M., & West, G. B.2004. Toward a metabolic theory of ecology. Ecology, 85(7), 1771-1789.
+3. Kleiber, M. 1932. Body size and metabolism. ENE, 1(9).
+4. White, C. R., & Seymour, R. S. 2003. Mammalian basal metabolic rate is proportional to body mass2/3. Proceedings of the National Academy of Sciences, 100(7), 4046-4049.
