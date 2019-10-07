@@ -1,0 +1,187 @@
+
+---
+title: "Relación entre peso y metabolismo"
+author: "Daniela O'Ryan"
+date: "30 de septiembre de 2019"
+output: 
+  ioslides_presentation: 
+    fig_caption: yes
+    fig_height: 5
+    fig_retina: null
+    fig_width: 7
+    incremental: yes
+    keep_md: yes
+    smaller: yes
+    widescreen: yes
+    fullscreen: yes
+widescreen: true
+---
+<style>
+.forceBreak { -webkit-column-break-after: always; break-after: column; }
+</style>
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
+library(tidyverse)
+library(knitr)
+library(caTools)
+library(httpuv)
+options("kableExtra.html.bs.Table", knitr.table.format = "html")
+
+```
+
+
+******
+```{r, fig.align='center', fig.height=7, fig.width=5}
+knitr::include_graphics('C:/intros.png')
+```
+
+
+
+## Historia de las relaciones alométricas{.build}
+1. Huxley (1932):Postulación de una relación entre el tamaño corporal y apéndices corporales 
+<div class="centered"> 
+$$H = a (M ^ b)$$  --.>    $$log(H) = log(a) + b*log(M)$$
+ </div> 
+```{r, echo=FALSE, fig.align='left', fig.height=6, fig.width=4}
+knitr::include_graphics('C:/alometria.png')
+```
+
+## Mientras tanto.. {.build}
+2. Kleiber (1932) y Brody (1945): b = 3/4 (0.75)
+3. Rubner (1883): b = 2/3 (0.66)
+4. Brown (2004):Publicación de la teoría metabólica 
+```{r, fig.align='center', out.width=450}
+knitr::include_graphics('C:/kleibers.jpeg')
+```
+ $$TMB = a (M ^ b)$$
+<div class="centered"> 
+     ¿Qué exponente _b_ explica mejor la relación entre TMB y M?
+</div> 
+       
+## Métodos
+```{r, fig.align='center'}
+knitr::include_graphics('C:/metodos.jpeg')
+```
+
+***
+1. Recopilación de datos de mamíferos de la base PanTheria 
+```{r, fig.align='center'}
+knitr::include_graphics('C:/pantheria.png')
+```
+2. Limpieza de base de datos (quitar NAs y valores erróneos)
+3. Exploración de datos 
+   - Revisión de peso corporal por orden
+   - Relación entre peso y TMB con distintos valores de exponente b
+   
+4. Modelo lineal para estimación de parámetro b
+
+## Resultados
+```{r, fig.align='center', fig.height=9, fig.width=6}
+knitr::include_graphics('C:/resultados.jpeg')
+```
+
+       
+## Promedios de peso corporal por orden
+
+```{r, fig.align='right'}
+library(kableExtra)
+mamif <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>%  rename("peso"=X5.1_AdultBodyMass_g) %>%  filter(peso!=-999.00, !is.na(peso)) %>%  rename("Orden"=orden)
+tabla1 <- mamif %>% group_by(Orden) %>% summarise(Promedio_peso =mean(peso), DE_peso=sd(peso)) %>%  arrange(desc(Promedio_peso))
+tabla1 %>% kable(caption = "Tabla 1. ", row.names = FALSE) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), position = "center") %>%  scroll_box(height = "600px")
+
+```
+
+********
+```{r, fig.align='center'}
+knitr::include_graphics('C:/m.png')
+```
+
+
+
+
+
+## Comparación entre exponentes de la relación peso - TMB
+
+```{r, fig.cap= "Figura 1. Relación entre peso corporal y TMB utilizando un exponente b=0.75 (izquierda) y b=0.66 (derecha)", fig.show='hold', out.width=450}
+mamifero <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X5.2_BasalMetRateMass_g) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB))
+ggplot(mamifero, aes(x =Peso , y = TMB))  + stat_smooth(method = "lm", formula = y ~ I(x^0.75)) + geom_point() + theme_classic()
+ggplot(mamifero, aes(x =Peso , y = TMB))  + stat_smooth(method = "lm", formula = y ~ I(x^0.66)) + geom_point() + theme_classic()
+
+```
+
+##  Plots combinados
+
+```{r fig.cap="Figura 2. Coeficientes de la relacion peso corporal y TMB usando un exponente b=0.66 (rojo) y b=0.75 (azul) ", fig.align='center'}
+mamifero2 <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X5.2_BasalMetRateMass_g) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB))
+ggplot(mamifero2, aes(x =Peso , y = TMB))  + stat_smooth(method = "lm", formula = y ~ I(x^0.66), color="red") + stat_smooth(method = "lm", formula = y ~ I(x^0.75), color="blue") + geom_point() + theme_classic()
+```
+
+## Regresión lineal 
+```{r, fig.cap= "Figura 3. Regresión lineal entre datos convertidos a forma logarítmica", fig.align='center', out.width=600}
+mamifero2 <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X18.1_BasalMetRate_mLO2hr) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB)) %>% mutate(log.TMB=log10(TMB)) %>% mutate(log.Peso = log10(Peso))
+ggplot(mamifero2, aes(x =log.Peso , y = log.TMB))  + stat_smooth(method = "lm", formula = y ~ x) + geom_point() + theme_classic()
+
+
+```
+$$TMB = a (M ^ b)$$
+
+## Parámetros de la regresión
+```{r}
+```
+
+
+```{r}
+mamifero2 <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X18.1_BasalMetRate_mLO2hr) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB)) %>% mutate(log.TMB=log10(TMB)) %>% mutate(log.Peso = log10(Peso))
+rg <- lm(formula = mamifero2$log.TMB ~ mamifero2$log.Peso )  
+summary(rg)
+```
+
+
+
+****
+```{r, fig.align='center'}
+knitr::include_graphics('C:/discussion.jpeg')
+```
+
+## Modelos lineales separados por orden{.smaller}
+```{r}
+mamifero <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X18.1_BasalMetRate_mLO2hr) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB)) %>%  rename("Orden"=orden) %>% mutate(log.Peso=log10(Peso)) %>% mutate(log.TMB=log10(TMB))
+bi <- mamifero %>% group_split(Orden) %>% purrr::map(~glm(log.TMB ~ log.Peso, data = .x)) %>% map(broom::tidy) %>% reduce(bind_rows)
+bi %>% kable(caption = "Tabla 2.", row.names = TRUE) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive", position = "float_right")) %>%  scroll_box(height = "600px")
+```
+
+## ¿Qué pasa si quitamos taxas "problemáticos"?{.build}
+Carnívoros y primates tienen tasa metabólica más alta que el resto de los mamíferos (White y Seymour, 2002)
+
+```{r, fig.show='hold', out.width=400}
+mamifero3 <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X18.1_BasalMetRate_mLO2hr) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% rename("Orden"=orden) %>% filter(Orden != "Carnivora") %>% filter(Orden !="Primates") %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB)) %>% mutate(log.TMB=log10(TMB)) %>% mutate(log.Peso = log10(Peso))
+rgl <- lm(formula = mamifero3$log.TMB ~ mamifero3$log.Peso )  
+summary(rgl)
+```
+
+
+
+## Conclusión{.build}
+1. La relación entre peso corporal y TMB en mamíferos es de tipo exponencial
+2. Los datos transformados a logaritmo resultan en una regresión lineal
+   - La pendiente de esta regresión es cercana a 0.7 considerando a todos los mamíferos (¡valor intermedio!) 
+   - La pendiente es 0.66 al excluir a los órdenes Carnivora y Primates -> idem Rubner (años 80) y White & Seymour (2002)
+3. La pendiente difiere notoriamente entre los órdenes yendo desde 0.218 a 1.329 -> Es necesario evaluar datos considerando diferencias entre órdenes
+
+## Referencias
+1. Huxley, J. S. 1932. Problems of relative growth. Methuen, London, UK.
+2. Brown, J. H., Gillooly, J. F., Allen, A. P., Savage, V. M., & West, G. B.2004. Toward a metabolic theory of ecology. Ecology, 85(7), 1771-1789.
+3. Kleiber, M. 1932. Body size and metabolism. ENE, 1(9).
+4. White, C. R., & Seymour, R. S. 2003. Mammalian basal metabolic rate is proportional to body mass2/3. Proceedings of the National Academy of Sciences, 100(7), 4046-4049.
+© 2019 GitHub, Inc.
+
+*********
+```{r, fig.align='center',  out.width=600}
+knitr::include_graphics('C:/gracias.png')
+```
+
+
+
