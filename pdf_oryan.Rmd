@@ -1,0 +1,186 @@
+---
+title: "Body weight and Basal Metabolic Rate relationship from a global mammalian database"
+author: "Daniela O'Ryan"
+date: "05-10-2019"
+output:
+  pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: my_header.tex
+bibliography: b.bib
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
+library(tidyverse)
+library(knitr)
+library(caTools)
+library(httpuv)
+library(smatr)
+library(tinytex)
+library(bibtex)
+library(latexpdf)
+options("kableExtra.html.bs.Table", knitr.table.format = "html")
+
+```
+
+
+
+
+## Introduction
+
+
+Julian Huxley and Georges Tessier were the first to coin the term “allometry” in 1936 to refer to the scaling relationship between the size of the whole body and the size of a specific body part [@huxley1936terminology]. They discovered that many scaling relationships can be represented using equation 1: 
+                                                      $$y = a (x^b)$$                             
+
+where x is body size or weight, y is organ size, _b_ is the exponent (known as the allometric coefficient) of the line and _a_ is a constant. 
+This relationship could be represented as linear when x and y were plotted on a log-log scale and as such they could be described by equation 2:
+                                                         $$log y = b (log x) + log a$$                                                   
+where b is now the slope of the line and (log a) is the intercept.
+
+In the years to follow, the definition of allometry broadened to include the relationship of body size and other traits, such as other morphological characteristics, physiological and ecological traits. Brown and collaborators [@brown2004toward] postulated the metabolic theory of ecology, an extension of Kleiber’s work stating that the basal metabolic rate (BMR) of individuals depended on their body size and that this relationship conditioned most of their ecological traits.
+
+Kleiber [@kleiber1932body] proposed that the slope _b_ = 3/4 (eq. 2) adjusted to a broad range of species going from bacteria, to plants, reptiles and mammalians. This was later portrayed by Brody and collaborators [@brody1946bioenergetics] in the classic “mouse to elephant” curve (Figure 1) where all taxa fit on a line of a slope of 3/4, being the only difference the intercept of each big group (unicellular, poikiloterms or homeoterms). This slope value is also used by Brown in his metabolic theory of ecology.
+
+More recently, a debate has emerged over the value of the _b_ slope. White & Seymour [@white2005allometric] stated that an exponent of 2/3, initially proposed by Rubner [@rubner1883ueber] is much more representative for mammalian than the value of 3/4 proposed by Kleiber and validated later by Brody [@brody1946bioenergetics]. As they explained, Kleiber’s data were overrepresenting high metabolic taxa, such as domestic carnivores and humans, so the value of _b_ would be overestimated.
+
+In this work we tested two _b_ values  by analyzing a global mammalian data base and building linear models in order to see which exponent (whether 2/3 or 3/4) explained the best  this body weight/BMR relationship.
+
+
+
+```{r, fig.cap="The mousse to elephant curve created by Rubner (1945). The relationship between log-log transformed mass and BMR is linear for every living being, from bacteria to homeoterms, with a slope of 3/4. The only thing that changes is the intercept ", fig.align='center', out.width=350}
+knitr::include_graphics('C:/kleibers.jpeg')
+```
+
+## Methods
+
+We used the mammalian database PanTheria, a species‐level database containing traits of life history, ecology, and geography of all known extant and recently extinct mammals. (http://esapubs.org/archive/ecol/E090/184/).
+
+An initial exploration as made for identifying missing and non-valid values. These were removed.
+In order to explore the database’s coherence of body weight values, we calculated the average body weight per mammalian order to check that there was indeed consistency between the data and the expected values (example: that the average body weight of individuals in the Rodentia order was not higher than the one of individuals on the Cetacea order).
+
+Next, we explored the relationship between body weight and BMR by plotting these values in their original form and comparing visually if a tendency line of 2/3 or 3/4 exponent best fitted the dots distribution. As BMR data are in the units of consumption of mL of oxygen per hour which is usually the one used to analyze BMR-body weight relationships [@white2005allometric], no transformation was necessary. Then, we transformed the data to a logarithm form and run a lineal regression to check what was the value of the slope (b exponent in the non-log transformed data). This was made using the R package SMATR in R, that allows for using a standardized major axis approach (SMA) and estimating model parameters in a more robust way [@warton2012smatr]. In order to add more reliability to our model, we chose a Hubber’s robust regression. This type of regression is less sensible to outliers so the fit of the model should be better [@huber1973robust]. Next, we tested for both exponent values 2/3 and 3/4 with a 95% confidence interval to see which one better explained data dispersal.
+
+Finally, we repeated the robust regression separating data by order, as it has been stated that there is greater variation of allometric coefficients among these [@white2005allometric]. We selected orders with more than 10 observations (30 or more observations would be the best to make use of the Central Limit Theorem, but only a few orders had more than 30 observations).
+
+All data analysis were performed using R version 3.6.1 [@holi]
+
+## Results 
+
+```{r}
+mamif <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>%  rename("pesos"=X5.1_AdultBodyMass_g) %>%  filter(pesos!=-999.00, !is.na(pesos)) %>%  rename("Order"=orden) %>% mutate(Peso=pesos/1000)
+```
+
+
+The average body weight of all observations was `r round(mean(mamif$Peso)) ` kilograms. The values by mammalian order are displayed in Table 1. Taxa are ordered from heaviest to lightest and units are in kilograms. Figure 2 shows the exponential relationship betweeen body weight (on the x axis) and BMR (on the y axis) of all data plotted together. Both tendency lines (for exponents 2/3 and 3/4) are plotted together in order to compare visually adjustement to the data.
+```{r, fig.align='center'}
+library(kableExtra)
+mamif <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>%  rename("pesos"=X5.1_AdultBodyMass_g) %>%  filter(pesos!=-999.00, !is.na(pesos)) %>%  rename("Order"=orden) %>% mutate(Peso=pesos/1000) 
+tabla1 <- mamif %>% group_by(Order) %>% summarise(Weight =round(mean(Peso)), SD=round(sd(Peso))) %>%  arrange(desc(Weight))
+tabla1 %>% kable(caption = "Average body weight values by order in kilograms. Groups are placed from heaviest to lightest. ", row.names = FALSE) %>% kable_styling(bootstrap_options = "basic",
+  latex_options = "hold_position" , full_width = NULL, position = "center")
+
+```
+
+
+```{r fig.cap="Body weight and BMR relationship, using an exponent b=0.66 (red) and b=0.75 (blue). Mass is in grams and BMR is in O2 mL consumption per hour ", fig.align='center', out.width=400}
+mamifero2 <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X5.2_BasalMetRateMass_g) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB)) %>% rename("Mass"=Peso) %>% rename("BMR"=TMB)
+ggplot(mamifero2, aes(x =Mass , y = BMR))  + stat_smooth(method = "lm", formula = y ~ I(x^0.66), color="red") + stat_smooth(method = "lm", formula = y ~ I(x^0.75), color="blue") + geom_point() + theme_classic()
+```
+
+Figure 3 shows how the relationship between Body Weight and BMR changes when data are log-transformed. The tendency line of a linear regression is also plotted. 
+```{r, fig.cap= "Linear regression of body weight and BMR, both log-transformed. Mass is in grams and BMR is in O2 mL consumption per hour", fig.align='center', out.width=400}
+mamifero2 <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("peso"= X5.1_AdultBodyMass_g) %>% rename("BMR"= X18.1_BasalMetRate_mLO2hr) %>%  filter(peso !=-999.00) %>% filter(BMR !=-999.00)  %>% filter(!is.na(peso)) %>% filter(!is.na(BMR)) %>% mutate(peso = as.numeric(peso)) %>%  mutate(BMR = as.numeric(BMR)) %>% mutate(log.BMR=log10(BMR)) %>% mutate(log.Mass= log10(peso))
+ggplot(mamifero2, aes(x =log.Mass , y = log.BMR))  + stat_smooth(method = "lm", formula = y ~ x) + geom_point() + theme_classic()
+```
+
+The parameters of the robust linear regression using a 95% confidence interval are displayed in the next table (log.Mass). The slope of the line is 0.708 and p-value is significant (p<0.01).
+```{r}
+#no conseguí poner el output de SMATR (objeto tipo SMA) como tabla, así que preferí hacer una regresión robusta normal y usar stargazer para ponerla en formato tabla. No pude ponerla como no texto para usar kable porque se desconfiguraba. Por eso esta tabla no tiene numeración.
+library(MASS)
+library(stargazer)
+library(kableExtra)
+library(latexpdf)
+mamifero2 <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("peso"= X5.1_AdultBodyMass_g) %>% rename("BMR"= X18.1_BasalMetRate_mLO2hr) %>%  filter(peso !=-999.00) %>% filter(BMR !=-999.00)  %>% filter(!is.na(peso)) %>% filter(!is.na(BMR)) %>% mutate(peso = as.numeric(peso)) %>%  mutate(BMR = as.numeric(BMR)) %>% mutate(log.BMR=log10(BMR)) %>% mutate(log.Mass= log10(peso))
+hu <-rlm(log.BMR ~ log.Mass, data=mamifero2)
+tabla <- stargazer(hu, type = "text")
+
+
+```
+
+
+After getting the slope using Huber's robust regression, we tested for both slope values b = 2/3 (0.66) and b=3/4 (0.75). Results are displayed in Table 2.
+
+```{r}
+#esta primera parte del chunk es usando SMATR y prueba las pendientes 2/3 y 3/4 arrojando un p-value. El output sale como un texto accesorio al summary de la regresión (que es un objeto tipo SMA) y no se puede despegar y formatear como tabla (a diferencia de las regresiones lineales típicas). Por lo tanto generé una tabla en Excel que permitiera visualizar mejor los datos para comparación y luego la subí  R y usé kable Extra para darle un formato tipo PDF como al resto de las tablas. De todas maneras quise poner el chunk de SMATR aquí para que se viera como hice el procedimiento: 
+#mamifero2 <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("peso"= X5.1_AdultBodyMass_g) #%>% rename("BMR"= X18.1_BasalMetRate_mLO2hr) %>%  filter(peso !=-999.00) %>% filter(BMR !=-999.00)  %>% #filter(!is.na(peso)) %>% filter(!is.na(BMR)) %>% mutate(peso = as.numeric(peso)) %>%  mutate(BMR = as.numeric(BMR)) 
+#ft <- sma(BMR~peso, log = "xy", slope.test = 0.75, data = mamifero2, robust = T)
+#ft2 <- sma(BMR~peso, log = "xy", slope.test = 0.66, data = mamifero2, robust = T)
+#summary(ft)
+#summary(ft2)
+
+#aquí subo las tablas de excel y las formateo con kable extra
+slopes <- read.csv("C:/slopes.csv", header = TRUE, sep = ";", dec = ",")
+sloppi <- slopes[ -c(1) ] %>% rename("Slope"=alo) %>% rename("P-value"=p) %>% rename("Test statistic"=ts)
+tablita <- sloppi %>% kable(caption = "Slope testing. Both slope values (2/3 and 3/4) and their respective P-values, test statistic and degrees of freedom.", row.names = FALSE) %>% kable_styling(bootstrap_options = "basic",latex_options = "hold_position" , full_width = NULL, position = "center")
+tablita
+```
+
+
+
+
+The results for the robust regression for each order with more than 10 observations is displayed in  Table 3. Allometric coefficients (slopes of the regression line) appear together with their respectives standars errors and test statistic values.
+
+```{r}
+library(MASS)
+mamifero <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X18.1_BasalMetRate_mLO2hr) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB)) %>%  rename("Order"=orden) %>% mutate(log.Weight=log10(Peso)) %>% mutate(log.BMR=log10(TMB))
+target <-  c( "Afrosoricida","Artiodactyla", "Carnivora", "Chiroptera", "Dasyuromorphia", "Didelphimorphia","Diprotodontia", "Primates", "Rodentia", "Soricomorpha")
+mamifero2 <- mamifero %>% filter(Order %in% target)
+bi <- mamifero2 %>% group_split(Order) %>% purrr::map(~rlm(log.BMR ~ log.Weight, data = .x)) %>% map(broom::tidy) %>% reduce(bind_rows)
+bi2 <- bi %>% filter(term=="(Intercept)") 
+rownames(bi2) = target
+bi2$term <- NULL
+bi2 %>% kable(caption = "Allometric coefficients estimates for mammalian orders with more than 10 observations", row.names = TRUE) %>% kable_styling(bootstrap_options = "basic",
+  latex_options = "hold_position" , full_width = NULL, position = "center")
+```
+
+The frequencies among orders of each allometric coefficient are ploteed as an histogram in Figure 4. 
+```{r, fig.align='center', out.width=400, fig.cap="Histogram of the allometric coefficients' frequencies among mammalian orders."}
+library(MASS)
+mamifero <- read.csv("C:/tablita.csv", header = TRUE, sep = ";", dec = ",") %>% rename("Peso"= X5.1_AdultBodyMass_g) %>% rename("TMB"= X18.1_BasalMetRate_mLO2hr) %>%  filter(Peso !=-999.00) %>% filter(TMB !=-999.00)  %>% filter(!is.na(Peso)) %>% filter(!is.na(TMB)) %>% mutate(Peso = as.numeric(Peso)) %>%  mutate(TMB = as.numeric(TMB)) %>%  rename("Order"=orden) %>% mutate(log.Weight=log10(Peso)) %>% mutate(log.BMR=log10(TMB))
+target <-  c( "Afrosoricida","Artiodactyla", "Carnivora", "Chiroptera", "Dasyuromorphia", "Didelphimorphia","Diprotodontia", "Primates", "Rodentia", "Soricomorpha")
+mamifero2 <- mamifero %>% filter(Order %in% target)
+bi <- mamifero2 %>% group_split(Order) %>% purrr::map(~rlm(log.BMR ~ log.Weight, data = .x)) %>% map(broom::tidy) %>% reduce(bind_rows)
+bi2 <- bi %>% filter(term=="(Intercept)") 
+rownames(bi2) = target
+bi2$term <- NULL
+bii <- bi2 %>% mutate(est=as.numeric(estimate))
+ju <- ggplot(bii, aes(x= estimate)) + geom_histogram(binwidth=0.3,fill="blue", colour="black")+ theme_classic()+ xlab("Allometric coefficients")
+ju 
+```
+
+
+## Discussion  
+
+On a broad sense, the average values of body weight by order were congruent. The heaviest order according to the data was the Cetacea, constituted by thoothed and baleen whales. Second was the Proboscidea, whose only living family is the Elephantidae (elephants). In the middle of the ranking we had taxas such as Primates, Diprodontia and Monotremata. Finally, the lower weight values were represented by the Soricomorpha (shrews and moles) and the Microbiotheria (ie. _Dromiciops gliroides_ or “Monito del Monte”).Knowing this and after plotting the data of body weight and BMR, we observed no clear differences between the 2/3 (0.66) and the 3/4 (0.75) tendency lines, although the 2/3 line seems to fit best the points near the origin of the axes.  When visually exploring the lineal regression plot, some points that were more distant from the rest were identified, so a robust regression was actually a good way to go in order to avoid possible outlier’s influence.
+ The robust regression delivered a _b_ value of 0.708.  This value is between 0.66 and 0.75 and although is closer to 0.75, it relies near the middle of the range. 
+The _b_ exponent testing confirmed that between 0.66 and 0.75, the slope was closer to be 0.75. The H0 was “b is not different from 0.66” or “b is not different from 0.75” on each case. P-values were significant and showed that in both cases H0 had to be rejected, but for b=0.66 the P-value was much lower than for b=0.75 (6.195e-14 versus 1.9735e-05).
+
+When data were separated by order and a lineal regression was performed, the allometric coefficients showed great variation, going from 0.269 to 1.376 (orders Didelphimorphia and Soricomorpha respectively). Both values are far from the classic 0.66 or 0.75 and correspond to orders with 20-something observations. Althought there are taxa with more observations (as the Rodentia with 250 data), there seems to be no relation between number of observations and how different the allometric coefficient is from the classic values (ie. the two next more numeours orders, the Carnivora and Chiroptera are closer to the 0.66 or 0.75 values, but there are taxa with less observations whose allometric coefficient is even closer). White and Seymour stated in their work that the taxa Carnivora and Primates elevated the coefficient value, nevertheless, these taxa showed values that were lower than the overall slope (0.325 and 0.465	respectively). Despite all this, in general, the most frequent values lied between 0.4 and 0.8 (Figure 4).
+
+
+## Conclusion
+
+The relationship between body mass and BMR follows the trajectory of an exponential line, assimilating to the shapes described by Kleiber [@kleiber1932body] and Huxley/Tessier [@huxley1936terminology].
+When transformed to a logarithm form, this relationship becomes linear and its significative. The value of the slope is not consistent with either of the classic values proposed: the 3/4 (0,75) proposed by Kleiber [@kleiber1932body] or the 2/3 (0.66) proposed by Rubner [@rubner1883ueber] and validated by White and Seymour [@white2005allometric].  There are noticeable differences among orders’ allometric values, so analysis separating data by order should be consider in the context of each taxa’s life traits.
+
+
+
+## Acknowledgments 
+
+The BIO4022-1 course team!
+
+## References
+
+
